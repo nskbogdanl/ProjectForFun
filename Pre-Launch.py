@@ -5,174 +5,201 @@ from vosk import Model, KaldiRecognizer
 from datetime import datetime
 import threading
 from collections import deque
+from pathlib import Path
+import time
 
-# Configuration
-SizeOfModel = 0  # 0 - russian model, 1 - english model
-ModelPath = r'D:\Programms\Code\ProjectForFun\VoskModel\\' + ("small-en" if SizeOfModel == 1 else "small-ru")
-TRIGGER_WORD = "Стоп"  # Trigger word ("Stop", but russian)
-RECORD_DURATION = 10  # Time after trigger word (seconds)
-BUFFER_DURATION = 10  # Time before trigger word (seconds)
-OUTPUT_FILE = "D:\\Programms\\Code\\ProjectForFun\\Results\\transcriptions.txt"
+# ======================
+# CONFIG
+# ======================
+SizeOfModel = 0  # 0 - russian, 1 - english
+TRIGGER_WORD = "Стоп"
+RECORD_DURATION = 10
+BUFFER_DURATION = 10
 
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "VoskModel" / ("small-en" if SizeOfModel == 1 else "small-ru")
+OUTPUT_FILE = BASE_DIR / "Results" / "transcriptions.txt"
 
-# Initialize model
-model = Model(ModelPath)
+print("Model path:", MODEL_PATH)
+
+# ======================
+# INIT VOSK
+# ======================
+model = Model(str(MODEL_PATH))
 rec = KaldiRecognizer(model, 16000)
 rec.SetWords(True)
 
+# ======================
+# GLOBAL STATE
+# ======================
 q = queue.Queue()
+
 recording_mode = False
 recording_buffer = []
 recording_start_time = None
-stop_flag = threading.Event()
 last_partial = ""
 
-# Circular buffer to store the last 10 seconds
-pre_trigger_buffer = deque(maxlen=100)  # 100 chunks of 0.1 seconds
+stop_flag = threading.Event()
 
-def callback(indata, frames, time, status):
+pre_trigger_buffer = deque(maxlen=200)  # ~10 sec depending on chunk size
+last_trigger_time = None
+TRIGGER_COOLDOWN = 5  # seconds
+
+# ======================
+# AUDIO CALLBACK
+# ======================
+def callback(indata, frames, time_info, status):
     if status:
         print(status)
     q.put(bytes(indata))
 
+# ======================
+# FILE SAVE
+# ======================
 def save_to_file(timestamp, text):
-    """Save transcription to file with timestamp"""
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
         f.write(f"[{timestamp}] {text}\n")
-    print(f"✓ Saved to {OUTPUT_FILE}: {text}")
 
+    print(f"\n✓ Saved: {text}\n")
+
+# ======================
+# EXIT THREAD
+# ======================
 def check_for_exit():
-    """Background thread to listen for exit command"""
     while not stop_flag.is_set():
-        user_input = input()
-        if user_input.lower() in ['exit', 'quit', 'q']:
-            print("\nExiting...")
+        cmd = input()
+        if cmd.lower() in ["exit", "quit", "q"]:
             stop_flag.set()
             break
 
-print(f" Listening for: '{TRIGGER_WORD}'")
-print("Type 'exit', 'quit', or 'q' and press Enter to stop\n")
+threading.Thread(target=check_for_exit, daemon=True).start()
 
-# Exit listener thread
-exit_thread = threading.Thread(target=check_for_exit, daemon=True)
-exit_thread.start()
+# ======================
+# MAIN LOOP
+# ======================
+print(f"Listening for trigger: '{TRIGGER_WORD}'\n")
 
 try:
-    with sd.RawInputStream(samplerate=16000, blocksize=8000, dtype='int16',
-                           channels=1, callback=callback):
+    with sd.RawInputStream(
+        samplerate=16000,
+        blocksize=8000,
+        dtype="int16",
+        channels=1,
+        callback=callback
+    ):
+
         while not stop_flag.is_set():
+
+            # ======================
+            # GET AUDIO DATA
+            # ======================
             try:
                 data = q.get(timeout=0.1)
             except queue.Empty:
-                # Check recording timeout even when no audio data
-                if recording_mode:
-                    elapsed = (datetime.now() - recording_start_time).total_seconds()
-                    if elapsed >= RECORD_DURATION:
-                        # Save recording
-                        full_text = ' '.join(recording_buffer).strip()
-                        if full_text:
-                            timestamp = recording_start_time.strftime("%Y-%m-%d %H:%M:%S")
-                            save_to_file(timestamp, full_text)
-                        
-                        recording_mode = False
-                        recording_buffer = []
-                        recording_start_time = None
-                        last_partial = ""
-                        print(f"\n🎤 Listening for trigger word: '{TRIGGER_WORD}'\n")
-                continue
-            
-            if rec.AcceptWaveform(data):
-                res = json.loads(rec.Result())
-                text = res.get('text', '').strip()
-                
-                if not recording_mode:
-                    # Add text to pre-trigger buffer with timestamp
+                data = None
+
+            if data:
+                is_final = rec.AcceptWaveform(data)
+
+                # ======================
+                # FINAL RESULT
+                # ======================
+                if is_final:
+                    res = json.loads(rec.Result())
+                    text = res.get("text", "").strip()
+
                     if text:
-                        pre_trigger_buffer.append((datetime.now(), text))
-                    
-                    # Check for trigger word
-                    if TRIGGER_WORD.lower() in text.lower():
-                        recording_mode = True
-                        
-                        current_time = datetime.now()
-                        buffered_text = []
-                        
-                        for timestamp, buffered in pre_trigger_buffer:
-                            time_diff = (current_time - timestamp).total_seconds()
-                            if time_diff <= BUFFER_DURATION:
-                                buffered_text.append(buffered)
-                        
-                        recording_buffer = buffered_text
-                        recording_start_time = current_time
-                        
-                        print(f"\n🔴 TRIGGERED! Saving {BUFFER_DURATION}s before + {RECORD_DURATION}s after...")
-                        print(f"  Before trigger: {' '.join(buffered_text)}")
+                        now = datetime.now()
+
+                        if not recording_mode:
+                            pre_trigger_buffer.append((now, text))
+
+                            # trigger check
+                            if TRIGGER_WORD.lower() in text.lower():
+                                if last_trigger_time is None or (now - last_trigger_time).total_seconds() > TRIGGER_COOLDOWN:
+
+                                    recording_mode = True
+                                    recording_start_time = now
+                                    last_trigger_time = now
+
+                                    # collect pre-buffer
+                                    buffered_text = [
+                                        t for ts, t in pre_trigger_buffer
+                                        if (now - ts).total_seconds() <= BUFFER_DURATION
+                                    ]
+
+                                    recording_buffer = buffered_text
+
+                                    print("\n🔴 TRIGGERED")
+                                    print("Before:", " ".join(buffered_text))
+
+                        else:
+                            recording_buffer.append(text)
+                            print(" ", text)
+
+                # ======================
+                # PARTIAL RESULT
+                # ======================
                 else:
-                    # Save recognized text
-                    if text:
-                        recording_buffer.append(text)
-                        print(f"  {text}")
-                    last_partial = ""
-            
-            else:
-                # Partial results
-                res = json.loads(rec.PartialResult())
-                partial = res.get('partial', '').strip()
-                
-                if not recording_mode:
-                    # Monitor partial results for trigger word
-                    if partial and TRIGGER_WORD.lower() in partial.lower():
-                        recording_mode = True
-                        
-                        current_time = datetime.now()
-                        buffered_text = []
-                        
-                        for timestamp, buffered in pre_trigger_buffer:
-                            time_diff = (current_time - timestamp).total_seconds()
-                            if time_diff <= BUFFER_DURATION:
-                                buffered_text.append(buffered)
-                        
-                        buffered_text.append(partial)
-                        recording_buffer = buffered_text
-                        recording_start_time = current_time
-                        
-                        print(f"\n🔴 TRIGGERED! Saving {BUFFER_DURATION}s before + {RECORD_DURATION}s after...")
-                        print(f"  Before trigger: {' '.join(buffered_text)}")
+                    res = json.loads(rec.PartialResult())
+                    partial = res.get("partial", "").strip()
+
+                    if not recording_mode:
+                        if partial and TRIGGER_WORD.lower() in partial.lower():
+                            now = datetime.now()
+
+                            if last_trigger_time is None or (now - last_trigger_time).total_seconds() > TRIGGER_COOLDOWN:
+
+                                recording_mode = True
+                                recording_start_time = now
+                                last_trigger_time = now
+
+                                buffered_text = [
+                                    t for ts, t in pre_trigger_buffer
+                                    if (now - ts).total_seconds() <= BUFFER_DURATION
+                                ]
+
+                                buffered_text.append(partial)
+                                recording_buffer = buffered_text
+
+                                print("\n🔴 TRIGGERED (partial)")
+                                print("Before:", " ".join(buffered_text))
+
+                    elif partial and partial != last_partial:
+                        print("..." + partial, end="\r")
                         last_partial = partial
-                elif partial and partial != last_partial:
-                    # Show partial results during recording
-                    print(f"  ...{partial}", end='\r')
-                    last_partial = partial
-            
-            # Check recording timeout
-            if recording_mode:
+
+            # ======================
+            # STOP RECORDING
+            # ======================
+            if recording_mode and recording_start_time:
                 elapsed = (datetime.now() - recording_start_time).total_seconds()
+
                 if elapsed >= RECORD_DURATION:
-                    # Add last partial result if needed
-                    if last_partial and last_partial not in ' '.join(recording_buffer):
-                        recording_buffer.append(last_partial)
-                    
-                    # Save everything
-                    full_text = ' '.join(recording_buffer).strip()
+                    full_text = " ".join(recording_buffer).strip()
+
                     if full_text:
                         timestamp = recording_start_time.strftime("%Y-%m-%d %H:%M:%S")
                         save_to_file(timestamp, full_text)
-                    
+
+                    # reset
                     recording_mode = False
                     recording_buffer = []
                     recording_start_time = None
                     last_partial = ""
-                    print(f"\n🎤 Listening for trigger word: '{TRIGGER_WORD}'\n")
+
+                    print(f"\n🎤 Listening again for '{TRIGGER_WORD}'\n")
 
 except KeyboardInterrupt:
-    print("\n\nStopped by Ctrl+C")
+    print("\nStopped by user")
+
 finally:
-    # Save any ongoing recording
     if recording_mode and recording_buffer:
-        if last_partial and last_partial not in ' '.join(recording_buffer):
-            recording_buffer.append(last_partial)
-        full_text = ' '.join(recording_buffer).strip()
+        full_text = " ".join(recording_buffer).strip()
         if full_text:
             timestamp = recording_start_time.strftime("%Y-%m-%d %H:%M:%S")
             save_to_file(timestamp, full_text)
+
     print("Program ended.")
