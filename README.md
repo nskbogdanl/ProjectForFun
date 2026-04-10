@@ -16,5 +16,5 @@
 ---
 
 ## Made by
-- **Bogdan Lomp**
-- **Github:** [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
+Bogdan Lomp
+Github: [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
