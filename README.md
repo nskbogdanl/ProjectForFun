@@ -4,9 +4,9 @@
 ---
 
 ## Technologies
- **Language:** Python 3.10+
- **Libraries:** `vosk`, `sounddevice`
- **Infrastructure:** [Vosk Offline Models](https://alphacephei.com)
+- **Language:** Python 3.10+
+- **Libraries:** `vosk`, `sounddevice`
+- **Infrastructure:** [Vosk Offline Models](https://alphacephei.com)
 
 ---
 
@@ -16,5 +16,5 @@
 ---
 
 ## Made by
- **Bogdan Lomp**
- **Github:** [\[nskbogdanl//github.com\](https://://github.com\]](https://github.com/nskbogdanl/ProjectForFun)
+- **Bogdan Lomp**
+- **Github:** [\[nskbogdanl//github.com\](https://://github.com\]](https://github.com/nskbogdanl/ProjectForFun)
