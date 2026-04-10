@@ -7,9 +7,9 @@ import threading
 from collections import deque
 
 # Configuration
-SizeOfModel = 0  # NO BIG MODEL RIGHT NOW: 0 - small, 1 - big (models)
-ModelPath = r'D:\Programms\Code\ProjectForFun\VoskModel\\' + ("big" if SizeOfModel == 1 else "small")
-TRIGGER_WORD = "Стоп"  # Trigger word
+SizeOfModel = 0  # 0 - russian model, 1 - english model
+ModelPath = r'D:\Programms\Code\ProjectForFun\VoskModel\\' + ("small-en" if SizeOfModel == 1 else "small-ru")
+TRIGGER_WORD = "Стоп/Stop"  # Trigger word
 RECORD_DURATION = 10  # Time after trigger word (seconds)
 BUFFER_DURATION = 10  # Time before trigger word (seconds)
 OUTPUT_FILE = "D:\\Programms\\Code\\ProjectForFun\\Results\\transcriptions.txt"
