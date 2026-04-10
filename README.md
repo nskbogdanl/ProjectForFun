@@ -65,7 +65,7 @@ pip install vosk sounddevice
 
 1. Run the program:
 ```
-python Code.py
+Code.py
 ```
 2. Speak into microphone
 3. Say trigger word (example: "Стоп")
