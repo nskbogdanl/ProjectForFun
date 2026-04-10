@@ -25,6 +25,7 @@ When a trigger word is detected, the program saves surrounding speech context to
 
 ## Project Structure
 
+```
 .
 │
 ├── Code.py
@@ -40,18 +41,18 @@ When a trigger word is detected, the program saves surrounding speech context to
 │   └── transcriptions.txt
 │
 └── README.md
-
+```
 ---
 
 ## Configuration
 
 Inside Code.py:
-
+```
 SizeOfModel = 0  # 0 = Russian model, 1 = English model  
 TRIGGER_WORD = "Стоп"  
 RECORD_DURATION = 10  # seconds after trigger  
 BUFFER_DURATION = 10  # seconds before trigger  
-
+```
 ---
 
 ## Installation
@@ -106,6 +107,7 @@ Format:
 
 Bogdan Lomp  
 GitHub: [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
+
 ---
 
 ## Notes
