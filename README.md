@@ -11,8 +11,6 @@ When a trigger word is detected, the program saves surrounding speech context to
 - Pre-buffer + post-buffer context saving
 - Automatic transcription saving to file
 - Fully offline (Vosk-based)
-- Multi-threaded input handling (exit control)
-
 ---
 
 ## Tech Stack
@@ -46,7 +44,7 @@ When a trigger word is detected, the program saves surrounding speech context to
 
 ## Configuration
 
-Inside Code.py:
+Inside "Code.py":
 ```
 SizeOfModel = 0  # 0 = Russian model, 1 = English model  
 TRIGGER_WORD = "Стоп"  
@@ -65,14 +63,13 @@ pip install vosk sounddevice
 
 ## Usage
 
-1. Download Vosk models and place them in VoskModel/
-2. Run the program:
-
+1. Run the program:
+```
 python Code.py
-
-3. Speak into microphone
-4. Say trigger word (example: "Стоп")
-5. Program will:
+```
+2. Speak into microphone
+3. Say trigger word (example: "Стоп")
+4. Program will:
    - save previous speech (buffer)
    - record triggered speech
    - save following speech
@@ -83,13 +80,13 @@ python Code.py
 ## Output
 
 Results are saved in:
-
+```
 Results/transcriptions.txt
-
+```
 Format:
-
+```
 [YYYY-MM-DD HH:MM:SS] recognized speech text
-
+```
 ---
 
 ## How it works
@@ -101,7 +98,10 @@ Format:
   - previous buffer is added
   - speech is recorded for fixed time
   - result is saved to file
-- Exit possible via terminal command: exit / quit / q
+- Exit possible via terminal command: 
+```
+q
+```
 
 ---
 
@@ -114,6 +114,5 @@ GitHub: [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
 
 ## Notes
 - Fully offline after model download
-- Accuracy depends on microphone and environment noise
-- Works best in quiet conditions
+- Accuracy depends on microphone, environment noise and size of the model
 - Trigger detection works on both partial and final speech results
