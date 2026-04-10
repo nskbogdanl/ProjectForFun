@@ -16,5 +16,5 @@
 ---
 
 ## Made by
-Bogdan Lomp
+Bogdan Lomp  
 Github: [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
