@@ -115,4 +115,3 @@ GitHub: [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
 ## Notes
 - Fully offline after model download
 - Accuracy depends on microphone, environment noise and size of the model
-- Trigger detection works on both partial and final speech results
