@@ -57,7 +57,9 @@ BUFFER_DURATION = 10  # seconds before trigger
 
 ## Installation
 
+```bash
 pip install vosk sounddevice
+```
 
 ---
 
