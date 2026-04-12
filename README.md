@@ -1,16 +1,17 @@
-# ProjectForFun
+# Wakeword Speech Transcriber
 
-A real-time offline speech recognition system with trigger-word detection.  
-When a trigger word is detected, the program saves surrounding speech context to a file.
+A real-time offline speech recognition system based on Vosk with wake-word detection.
+
+When a trigger word is detected, the system captures surrounding speech context (before and after the event) and saves it as a structured transcription log.
 
 ---
 
 ## Features
-- Real-time microphone speech recognition
-- Trigger-word detection in live audio stream
-- Pre-buffer + post-buffer context saving
-- Automatic transcription saving to file
-- Fully offline (Vosk-based)
+- Real-time audio stream processing
+- Wake-word / trigger-word detection
+- Pre-trigger and post-trigger audio buffering
+- Offline speech recognition (no internet required)
+- Automatic structured transcription logging
 ---
 
 ## Tech Stack
@@ -26,7 +27,7 @@ When a trigger word is detected, the program saves surrounding speech context to
 ```
 .
 │
-├── Code.py
+├── main.py
 │
 ├── STL/
 │   └── *.stl (parts for 3D-printing)
@@ -44,10 +45,10 @@ When a trigger word is detected, the program saves surrounding speech context to
 
 ## Configuration
 
-Inside "Code.py":
+Inside "main.py":
 ```
 SizeOfModel = 0  # 0 = Russian model, 1 = English model  
-TRIGGER_WORD = "Стоп"  
+TRIGGER_WORD = "Стоп"  # or other word
 RECORD_DURATION = 10  # seconds after trigger  
 BUFFER_DURATION = 10  # seconds before trigger  
 ```
@@ -65,7 +66,7 @@ pip install vosk sounddevice
 
 1. Run the program:
 ```
-Code.py
+main.py
 ```
 2. Speak into microphone
 3. Say trigger word (example: "Стоп")
@@ -108,7 +109,7 @@ q
 ## Author
 
 Bogdan Lomp  
-GitHub: [ProjectForFun](https://github.com/nskbogdanl/ProjectForFun)
+GitHub: [Wakeword-speech-transcriber](https://github.com/nskbogdanl/Wakeword-speech-transcriber)
 
 ---
 
